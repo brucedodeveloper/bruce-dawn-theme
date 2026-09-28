@@ -35,6 +35,19 @@ if (!customElements.get('product-form')) {
         delete config.headers['Content-Type'];
 
         const formData = new FormData(this.form);
+        [
+          ['properties[To]', 'to'],
+          ['properties[From]', 'from'],
+          ['properties[Gift message]', 'message'],
+        ].forEach(([name, field]) => {
+          const value = formData.get(name);
+          if (typeof value !== 'string') return;
+          formData.delete(name);
+          const trimmed = window.GiftWrap
+            ? window.GiftWrap.clip(value, field)
+            : value.trim();
+          if (trimmed) formData.append(name, trimmed);
+        });
         if (this.cart) {
           formData.append(
             'sections',
@@ -54,7 +67,7 @@ if (!customElements.get('product-form')) {
 
         fetch(`${routes.cart_add_url}`, config)
           .then((response) => response.json())
-          .then((response) => {
+          .then(async (response) => {
             if (response.status) {
               publish(PUB_SUB_EVENTS.cartError, {
                 source: 'product-form',
@@ -80,9 +93,32 @@ if (!customElements.get('product-form')) {
               this.error = true;
               return;
             } else if (!this.cart) {
+              try {
+                if (window.GiftWrap) await window.GiftWrap.syncFromServer([]);
+              } catch (error) {
+                this.handleErrorMessage(error.message);
+                this.error = true;
+                linesUpdateDeferred?.reject(error);
+                return;
+              }
               this.resolveCartLinesUpdate(linesUpdateDeferred);
               window.location = window.routes.cart_url;
               return;
+            }
+
+            let renderState = response;
+            if (window.GiftWrap) {
+              try {
+                const sectionIds = this.cart
+                  .getSectionsToRender()
+                  .map((section) => section.id);
+                const synced = await window.GiftWrap.syncFromServer(sectionIds);
+                if (synced?.sections) {
+                  renderState = { ...response, sections: synced.sections };
+                }
+              } catch (error) {
+                this.handleErrorMessage(error.message);
+              }
             }
 
             this.resolveCartLinesUpdate(linesUpdateDeferred);
@@ -111,7 +147,7 @@ if (!customElements.get('product-form')) {
                     CartPerformance.measure(
                       'add:paint-updated-sections',
                       () => {
-                        this.cart.renderContents(response);
+                        this.cart.renderContents(renderState);
                       },
                     );
                   });
@@ -121,7 +157,7 @@ if (!customElements.get('product-form')) {
               quickAddModal.hide(true);
             } else {
               CartPerformance.measure('add:paint-updated-sections', () => {
-                this.cart.renderContents(response);
+                this.cart.renderContents(renderState);
               });
             }
           })

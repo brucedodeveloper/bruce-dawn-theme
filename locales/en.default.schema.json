@@ -350,6 +350,24 @@
         }
       }
     },
+    "gift_wrapping": {
+      "name": "Gift wrapping",
+      "settings": {
+        "gift_wrap_product": {
+          "label": "Gift wrapping product",
+          "info": "Added to the cart when items are wrapped. Leave empty to save the gift message only."
+        },
+        "gift_wrap_to_character_limit": {
+          "label": "To character limit"
+        },
+        "gift_wrap_from_character_limit": {
+          "label": "From character limit"
+        },
+        "gift_wrap_message_character_limit": {
+          "label": "Gift message character limit"
+        }
+      }
+    },
     "layout": {
       "name": "Layout",
       "settings": {
@@ -1994,6 +2012,12 @@
                 "label": "None"
               }
             }
+          }
+        },
+        "gift_wrapping": {
+          "name": "Gift wrapping",
+          "settings": {
+            "paragraph": "Product and character limit are set in Theme settings > Gift wrapping."
           }
         },
         "buy_buttons": {

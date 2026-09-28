@@ -1,0 +1,100 @@
+{% comment %}
+  Gift wrapping. Checkbox and message fields for the product form. Fields submit only while the checkbox is checked.
+
+  Accepts:
+  - product_form_id: {String} - Id of the product form
+  - product: {Object} - The product currently being viewed
+  - block: {Object} - Gift wrapping block, used for theme editor attributes
+
+  Usage:
+  {% render 'gift-wrapping', product_form_id: product_form_id, product: product, block: block %}
+{% endcomment %}
+
+{%- liquid
+  assign gift_wrap_variant = settings.gift_wrap_product.selected_or_first_available_variant
+  assign gift_wrap_to_limit = settings.gift_wrap_to_character_limit | default: 200
+  assign gift_wrap_from_limit = settings.gift_wrap_from_character_limit | default: 200
+  assign gift_wrap_message_limit = settings.gift_wrap_message_character_limit | default: 200
+  assign hide_gift_wrap = false
+  if settings.gift_wrap_product != blank and product.id == settings.gift_wrap_product.id
+    assign hide_gift_wrap = true
+  endif
+  if gift_wrap_variant
+    assign gift_wrap_price = gift_wrap_variant.price | money
+  endif
+-%}
+
+{%- unless hide_gift_wrap -%}
+  <div class='md:!twcss-mt-10 !twcss-mt-8 !twcss-mb-0' data-gift-wrap-product {{ block.shopify_attributes }}>
+    <label class='twcss-relative twcss-flex twcss-cursor-pointer twcss-items-center twcss-gap-2 md:twcss-text-base twcss-text-sm'>
+      <input
+        type='checkbox'
+        class='twcss-peer twcss-absolute twcss-left-0 twcss-top-0 twcss-z-1 twcss-cursor-pointer twcss-appearance-none twcss-opacity-0 !twcss-m-0 !twcss-h-5 !twcss-w-5'
+        data-gift-wrap-product-toggle
+      >
+      <span
+        class='twcss-inline-flex twcss-h-5 twcss-w-5 twcss-shrink-0 [&>svg]:twcss-block peer-checked:twcss-hidden peer-focus-visible:twcss-outline peer-focus-visible:twcss-outline-2 peer-focus-visible:twcss-outline-primary'
+        aria-hidden='true'
+      >
+        {{ 'uncheck.svg' | inline_asset_content }}
+      </span>
+      <span
+        class='twcss-hidden twcss-h-5 twcss-w-5 twcss-shrink-0 [&>svg]:twcss-block peer-checked:twcss-inline-flex peer-focus-visible:twcss-outline peer-focus-visible:twcss-outline-2 peer-focus-visible:twcss-outline-primary'
+        aria-hidden='true'
+      >
+        {{ 'checked.svg' | inline_asset_content }}
+      </span>
+      <span class='twcss-relative twcss-top-0.75 twcss-text-primary'>
+        {{- 'products.product.gift_wrap.label' | t }}
+        {%- if gift_wrap_variant %} ({{ 'products.product.gift_wrap.price' | t: price: gift_wrap_price }}){%- endif -%}
+      </span>
+    </label>
+
+    <div class='twcss-mt-4 twcss-hidden twcss-flex-col twcss-gap-4' data-gift-wrap-product-fields>
+      <input
+        type='hidden'
+        name='properties[_gift_wrap]'
+        value='true'
+        form='{{ product_form_id }}'
+        disabled
+      >
+      <label class='twcss-flex twcss-flex-col twcss-gap-2 twcss-text-base'>
+        <span class='twcss-relative twcss-top-0.75 twcss-text-primary'>{{ 'products.product.gift_wrap.to' | t }}</span>
+        <input
+          class='twcss-w-full twcss-h-10.5 twcss-rounded twcss-border twcss-border-solid twcss-border-secondary twcss-bg-white twcss-px-4 twcss-py-2 twcss-text-base twcss-text-primary placeholder:twcss-text-secondary twcss-outline-none'
+          type='text'
+          name='properties[To]'
+          maxlength='{{ gift_wrap_to_limit }}'
+          placeholder='{{ 'products.product.gift_wrap.to_placeholder' | t }}'
+          form='{{ product_form_id }}'
+          disabled
+          autocomplete='name'
+        >
+      </label>
+      <label class='twcss-flex twcss-flex-col twcss-gap-2 twcss-text-base'>
+        <span class='twcss-relative twcss-top-0.75 twcss-text-primary'>{{ 'products.product.gift_wrap.from' | t }}</span>
+        <input
+          class='twcss-w-full twcss-h-10.5 twcss-rounded twcss-border twcss-border-solid twcss-border-secondary twcss-bg-white twcss-px-4 twcss-py-2 twcss-text-base twcss-text-primary placeholder:twcss-text-secondary twcss-outline-none'
+          type='text'
+          name='properties[From]'
+          maxlength='{{ gift_wrap_from_limit }}'
+          placeholder='{{ 'products.product.gift_wrap.from_placeholder' | t }}'
+          form='{{ product_form_id }}'
+          disabled
+          autocomplete='name'
+        >
+      </label>
+      <label class='twcss-flex twcss-flex-col twcss-gap-2 twcss-text-base'>
+        <span class='twcss-relative twcss-top-0.75 twcss-text-primary'>{{ 'products.product.gift_wrap.message' | t }}</span>
+        <textarea
+          class='twcss-min-h-35 twcss-w-full twcss-resize-y twcss-rounded twcss-border twcss-border-solid twcss-border-secondary twcss-bg-white twcss-px-4 twcss-py-3 twcss-text-base twcss-text-primary placeholder:twcss-text-secondary twcss-outline-none'
+          name='properties[Gift message]'
+          maxlength='{{ gift_wrap_message_limit }}'
+          placeholder='{{ 'products.product.gift_wrap.message_placeholder' | t }}'
+          form='{{ product_form_id }}'
+          disabled
+        ></textarea>
+      </label>
+    </div>
+  </div>
+{%- endunless -%}
