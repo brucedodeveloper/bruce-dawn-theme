@@ -1453,6 +1453,35 @@
     ]
   },
   {
+    "name": "t:settings_schema.gift_wrapping.name",
+    "settings": [
+      {
+        "type": "product",
+        "id": "gift_wrap_product",
+        "label": "t:settings_schema.gift_wrapping.settings.gift_wrap_product.label",
+        "info": "t:settings_schema.gift_wrapping.settings.gift_wrap_product.info"
+      },
+      {
+        "type": "number",
+        "id": "gift_wrap_to_character_limit",
+        "label": "t:settings_schema.gift_wrapping.settings.gift_wrap_to_character_limit.label",
+        "default": 200
+      },
+      {
+        "type": "number",
+        "id": "gift_wrap_from_character_limit",
+        "label": "t:settings_schema.gift_wrapping.settings.gift_wrap_from_character_limit.label",
+        "default": 200
+      },
+      {
+        "type": "number",
+        "id": "gift_wrap_message_character_limit",
+        "label": "t:settings_schema.gift_wrapping.settings.gift_wrap_message_character_limit.label",
+        "default": 200
+      }
+    ]
+  },
+  {
     "name": "t:settings_schema.customer_accounts.name",
     "settings": [
       {

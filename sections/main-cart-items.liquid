@@ -82,8 +82,20 @@
 
               <tbody>
                 {%- for item in cart.items -%}
+                  {%- liquid
+                    assign gift_wrap_variant_id = settings.gift_wrap_product.selected_or_first_available_variant.id
+                    assign is_gift_wrap_line = false
+                    if gift_wrap_variant_id != blank and item.variant.id == gift_wrap_variant_id
+                      assign is_gift_wrap_line = true
+                    endif
+                    assign gift_wrap_next_is_nested = false
+                    assign gift_wrap_next_item = cart.items[forloop.index]
+                    if gift_wrap_next_item.parent_relationship.parent != null
+                      assign gift_wrap_next_is_nested = true
+                    endif
+                  -%}
                   <tr
-                    class="cart-item {% if item.parent_relationship.parent != null %}cart-item__nested-line{% endif %}"
+                    class="cart-item {% if item.parent_relationship.parent != null %}cart-item__nested-line{% endif %} max-md:has-[+[data-gift-wrap-row]]:!twcss-mb-0"
                     id="CartItem-{{ item.index | plus: 1 }}"
                     {% if item.parent_relationship.parent != null %}
                       aria-label="{{- 'products.product.nested_label' | t: title: item.product.title, parent_title: item.parent_relationship.parent.title | escape -}}"
@@ -157,6 +169,7 @@
 
                           {%- for property in item.properties -%}
                             {%- assign property_first_char = property.first | slice: 0 -%}
+                            {%- unless property.first == 'To' or property.first == 'From' or property.first == 'Gift message' -%}
                             {%- if property.last != blank and property_first_char != '_' -%}
                               <div class="product-option">
                                 <dt>{{ property.first }}:</dt>
@@ -171,6 +184,7 @@
                                 </dd>
                               </div>
                             {%- endif -%}
+                            {%- endunless -%}
                           {%- endfor -%}
                         </dl>
 
@@ -247,6 +261,7 @@
                             {%- endif -%}
                             <quantity-input class="quantity cart-quantity">
                               {% assign can_update_quantity = item.instructions.can_update_quantity | default: true %}
+                              {%- unless is_gift_wrap_line -%}
                               <button
                                 class="quantity__button"
                                 name="minus"
@@ -262,6 +277,7 @@
                                   {{- 'icon-minus.svg' | inline_asset_content -}}
                                 </span>
                               </button>
+                              {%- endunless -%}
                               <input
                                 class="quantity__input"
                                 data-quantity-variant-id="{{ item.variant.id }}"
@@ -281,10 +297,14 @@
                                 aria-label="{{ 'products.product.quantity.input_label' | t: product: item.product.title | escape }}"
                                 id="Quantity-{{ item.index | plus: 1 }}"
                                 data-index="{{ item.index | plus: 1 }}"
-                                {% if can_update_quantity == false %}
+                                {% if is_gift_wrap_line %}
+                                  readonly
+                                  data-gift-wrap-locked="true"
+                                {% elsif can_update_quantity == false %}
                                   disabled
                                 {% endif %}
                               >
+                              {%- unless is_gift_wrap_line -%}
                               <button
                                 class="quantity__button"
                                 name="plus"
@@ -300,8 +320,10 @@
                                   {{- 'icon-plus.svg' | inline_asset_content -}}
                                 </span>
                               </button>
+                              {%- endunless -%}
                             </quantity-input>
                           </div>
+                          {%- unless is_gift_wrap_line -%}
                           <cart-remove-button
                             id="Remove-{{ item.index | plus: 1 }}"
                             data-index="{{ item.index | plus: 1 }}"
@@ -320,6 +342,7 @@
                               </span>
                             </a>
                           </cart-remove-button>
+                          {%- endunless -%}
                         </div>
                         {%- if has_qty_rules or has_vol_pricing -%}
                           <button
@@ -447,6 +470,18 @@
                       </div>
                     </td>
                   </tr>
+                  {%- unless is_gift_wrap_line -%}
+                    <tr
+                      class="max-md:twcss-block twcss-w-full twcss-mt-3 last:!twcss-mb-0"
+                    >
+                      <td
+                        class="check-out-gift-wrapping max-md:twcss-block max-md:twcss-w-full !twcss-px-0 max-md:!twcss-py-0 md:!twcss-pt-3 md:!twcss-pb-0"
+                        colspan="5"
+                      >
+                        {% render 'gift-wrapping-cart', item: item %}
+                      </td>
+                    </tr>
+                  {%- endunless -%}
                 {%- endfor -%}
               </tbody>
             </table>

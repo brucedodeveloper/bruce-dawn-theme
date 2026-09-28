@@ -1,0 +1,151 @@
+{% comment %}
+  Gift wrap checkbox, summary, and editor for one cart line. Inputs have no name so they are not posted with the cart checkout form.
+
+  Accepts:
+  - item: {Object} - Cart line to edit
+
+  Usage:
+  {% render 'gift-wrapping-cart', item: item %}
+{% endcomment %}
+
+{%- liquid
+  assign gift_wrap_variant = settings.gift_wrap_product.selected_or_first_available_variant
+  assign gift_wrap_to_limit = settings.gift_wrap_to_character_limit | default: 200
+  assign gift_wrap_from_limit = settings.gift_wrap_from_character_limit | default: 200
+  assign gift_wrap_message_limit = settings.gift_wrap_message_character_limit | default: 200
+  assign gift_wrap_saved = false
+  if item.properties._gift_wrap == 'true'
+    assign gift_wrap_saved = true
+  endif
+  if gift_wrap_variant
+    assign gift_wrap_price = gift_wrap_variant.price | money
+  endif
+-%}
+
+<div
+  class='twcss-flex twcss-flex-col twcss-gap-1 twcss-p-3 twcss-bg-grey-100'
+  data-gift-wrap
+  data-line-key='{{ item.key }}'
+  data-quantity='{{ item.quantity }}'
+  data-saved='{% if gift_wrap_saved %}true{% else %}false{% endif %}'
+>
+  <script type='application/json' data-gift-wrap-properties>
+    {{ item.properties | json }}
+  </script>
+
+  <div class='twcss-flex twcss-items-center twcss-justify-between twcss-gap-3'>
+    <label class='twcss-relative twcss-flex twcss-cursor-pointer twcss-items-center twcss-gap-2 md:twcss-text-base twcss-text-sm'>
+      <input
+        type='checkbox'
+        class='twcss-peer twcss-absolute twcss-left-0 twcss-top-0 twcss-z-1 twcss-cursor-pointer twcss-appearance-none twcss-opacity-0 !twcss-m-0 !twcss-h-5 !twcss-w-5'
+        data-gift-wrap-toggle
+        {% if gift_wrap_saved %}
+          checked
+        {% endif %}
+      >
+      <span
+        class='twcss-inline-flex twcss-h-5 twcss-w-5 twcss-shrink-0 [&>svg]:twcss-block peer-checked:twcss-hidden peer-focus-visible:twcss-outline peer-focus-visible:twcss-outline-2 peer-focus-visible:twcss-outline-primary'
+        aria-hidden='true'
+      >
+        {{ 'uncheck.svg' | inline_asset_content }}
+      </span>
+      <span
+        class='twcss-hidden twcss-h-5 twcss-w-5 twcss-shrink-0 [&>svg]:twcss-block peer-checked:twcss-inline-flex peer-focus-visible:twcss-outline peer-focus-visible:twcss-outline-2 peer-focus-visible:twcss-outline-primary'
+        aria-hidden='true'
+      >
+        {{ 'checked.svg' | inline_asset_content }}
+      </span>
+      <span class='twcss-relative twcss-top-0.75 twcss-text-primary'>
+        {{- 'products.product.gift_wrap.label' | t }}
+        {%- if gift_wrap_variant %} ({{ 'products.product.gift_wrap.price' | t: price: gift_wrap_price }}){%- endif -%}
+      </span>
+    </label>
+    <button
+      type='button'
+      class='twcss-flex twcss-items-center twcss-gap-2 twcss-shrink-0 twcss-cursor-pointer twcss-border-0 twcss-bg-transparent twcss-p-0{% unless gift_wrap_saved %} twcss-hidden{% endunless %}'
+      data-gift-wrap-edit
+    >
+      <span class='twcss-relative twcss-top-0.75 md:twcss-text-sm twcss-text-xs twcss-underline twcss-underline-offset-4 twcss-text-primary'>
+        {{ 'products.product.gift_wrap.edit' | t }}
+      </span>
+      <span class='md:twcss-w-5 twcss-w-4 md:twcss-h-5 twcss-h-4'>
+        {{ 'edit-icon.svg' | inline_asset_content }}
+      </span>
+    </button>
+    <button
+      type='button'
+      class='twcss-flex twcss-items-center twcss-gap-2 twcss-hidden twcss-shrink-0 twcss-cursor-pointer twcss-border-0 twcss-bg-transparent twcss-p-0'
+      data-gift-wrap-cancel
+    >
+      <span class='twcss-relative twcss-top-0.75 md:twcss-text-sm twcss-text-xs twcss-underline twcss-underline-offset-4 twcss-text-primary'>
+        {{ 'products.product.gift_wrap.cancel' | t }}
+      </span>
+      <span class='md:twcss-w-5 twcss-w-4 md:twcss-h-5 twcss-h-4'>
+        {{ 'close-icon.svg' | inline_asset_content }}
+      </span>
+    </button>
+  </div>
+
+  <p
+    class='twcss-relative twcss-top-0.75 twcss-m-0 md:twcss-text-sm twcss-text-xs twcss-text-grey-200{% unless gift_wrap_saved %} twcss-hidden{% endunless %}'
+    data-gift-wrap-summary
+  >
+    {%- if item.properties.To != blank -%}
+      {{ 'products.product.gift_wrap.to' | t }}: {{ item.properties.To | escape }}
+    {%- endif -%}
+    {%- if item.properties.From != blank -%}
+      {%- if item.properties.To != blank %} / {% endif -%}
+      {{ 'products.product.gift_wrap.from' | t }}: {{ item.properties.From | escape }}
+    {%- endif -%}
+    {%- if item.properties['Gift message'] != blank -%}
+      {%- if item.properties.To != blank or item.properties.From != blank %} / {% endif -%}
+      "{{ item.properties['Gift message'] | escape }}"
+    {%- endif -%}
+  </p>
+
+  <div
+    class='twcss-hidden twcss-flex-col twcss-gap-4 twcss-pt-3'
+    data-gift-wrap-editor
+  >
+    <label class='twcss-flex twcss-flex-col twcss-gap-2 twcss-text-base'>
+      <span class='twcss-relative twcss-top-0.75 twcss-text-primary'>{{ 'products.product.gift_wrap.to' | t }}</span>
+      <input
+        class='twcss-w-full twcss-h-10.5 twcss-rounded twcss-border twcss-border-solid twcss-border-secondary twcss-bg-white twcss-px-4 twcss-py-2 twcss-text-base twcss-text-primary placeholder:twcss-text-secondary twcss-outline-none'
+        type='text'
+        maxlength='{{ gift_wrap_to_limit }}'
+        placeholder='{{ 'products.product.gift_wrap.to_placeholder' | t }}'
+        data-gift-wrap-to
+        autocomplete='name'
+      >
+    </label>
+    <label class='twcss-flex twcss-flex-col twcss-gap-2 twcss-text-base'>
+      <span class='twcss-relative twcss-top-0.75 twcss-text-primary'>{{ 'products.product.gift_wrap.from' | t }}</span>
+      <input
+        class='twcss-w-full twcss-h-10.5 twcss-rounded twcss-border twcss-border-solid twcss-border-secondary twcss-bg-white twcss-px-4 twcss-py-2 twcss-text-base twcss-text-primary placeholder:twcss-text-secondary twcss-outline-none'
+        type='text'
+        maxlength='{{ gift_wrap_from_limit }}'
+        placeholder='{{ 'products.product.gift_wrap.from_placeholder' | t }}'
+        data-gift-wrap-from
+        autocomplete='name'
+      >
+    </label>
+    <label class='twcss-flex twcss-flex-col twcss-gap-2 twcss-text-base'>
+      <span class='twcss-relative twcss-top-0.75 twcss-text-primary'>{{ 'products.product.gift_wrap.message' | t }}</span>
+      <textarea
+        class='twcss-min-h-35 twcss-w-full twcss-resize-y twcss-rounded twcss-border twcss-border-solid twcss-border-secondary twcss-bg-white twcss-px-4 twcss-py-3 twcss-text-base twcss-text-primary placeholder:twcss-text-secondary twcss-outline-none'
+        maxlength='{{ gift_wrap_message_limit }}'
+        placeholder='{{ 'products.product.gift_wrap.message_placeholder' | t }}'
+        data-gift-wrap-message
+      ></textarea>
+    </label>
+    <button
+      type='button'
+      class='twcss-w-full twcss-cursor-pointer twcss-rounded twcss-border-0 twcss-bg-primary twcss-p-3 twcss-text-button twcss-text-white'
+      data-gift-wrap-update
+    >
+      {{ 'products.product.gift_wrap.update' | t }}
+    </button>
+  </div>
+
+  <p class='twcss-m-0 twcss-hidden twcss-text-sm twcss-text-primary' data-gift-wrap-error role='alert'></p>
+</div>

@@ -26,7 +26,10 @@ class CartItems extends window.StandardEvents.createViewEventElement(
       this.onChange(event);
     }, ON_CHANGE_DEBOUNCE_TIMER);
 
-    this.addEventListener('change', debouncedOnChange.bind(this));
+    this.addEventListener('change', (event) => {
+      if (event.target.closest('[data-gift-wrap]')) return;
+      debouncedOnChange(event);
+    });
   }
 
   cartUpdateUnsubscriber = undefined;
@@ -86,6 +89,11 @@ class CartItems extends window.StandardEvents.createViewEventElement(
   }
 
   validateQuantity(event) {
+    if (event.target.dataset.giftWrapLocked === 'true') {
+      event.target.value = event.target.getAttribute('value');
+      return;
+    }
+
     const inputValue = parseInt(event.target.value);
     const index = event.target.dataset.index;
     let message = '';
@@ -225,8 +233,32 @@ class CartItems extends window.StandardEvents.createViewEventElement(
       .then((response) => {
         return response.text();
       })
-      .then((state) => {
-        const parsedState = JSON.parse(state);
+      .then(async (state) => {
+        let parsedState = JSON.parse(state);
+
+        if (!parsedState.errors && window.GiftWrap?.variantId()) {
+          const wrapId = String(window.GiftWrap.variantId());
+          if (String(lineVariantId) !== wrapId) {
+            try {
+              const synced = await window.GiftWrap.sync(
+                parsedState,
+                sectionsToRender.map((section) => section.section),
+              );
+              if (synced) parsedState = synced;
+            } catch (error) {
+              this.updateLiveRegions(
+                line,
+                error.message || window.cartStrings.error,
+              );
+              this.dispatchCartErrorEvent(
+                error.message || window.cartStrings.error,
+                'INVALID',
+              );
+              linesUpdateDeferred?.reject(error);
+              return;
+            }
+          }
+        }
 
         if (parsedState.errors) {
           this.dispatchCartErrorEvent(parsedState.errors, 'INVALID');
@@ -247,32 +279,10 @@ class CartItems extends window.StandardEvents.createViewEventElement(
             return;
           }
 
-          this.classList.toggle('is-empty', parsedState.item_count === 0);
-          const cartDrawerWrapper = document.querySelector('cart-drawer');
-          const cartFooter = document.getElementById('main-cart-footer');
-
-          if (cartFooter)
-            cartFooter.classList.toggle(
-              'is-empty',
-              parsedState.item_count === 0,
-            );
-          if (cartDrawerWrapper)
-            cartDrawerWrapper.classList.toggle(
-              'is-empty',
-              parsedState.item_count === 0,
-            );
-
-          sectionsToRender.forEach((section) => {
-            const elementToReplace =
-              document
-                .getElementById(section.id)
-                .querySelector(section.selector) ||
-              document.getElementById(section.id);
-            elementToReplace.innerHTML = this.getSectionInnerHTML(
-              parsedState.sections[section.section],
-              section.selector,
-            );
-          });
+          const cartDrawerWrapper = this.paintCartSections(
+            parsedState,
+            sectionsToRender,
+          );
           const updatedValue = parsedState.items[line - 1]
             ? parsedState.items[line - 1].quantity
             : undefined;
@@ -367,6 +377,47 @@ class CartItems extends window.StandardEvents.createViewEventElement(
       }),
     );
     return deferred;
+  }
+
+  paintCartSections(
+    parsedState,
+    sectionsToRender = this.getSectionsToRender(),
+  ) {
+    this.classList.toggle('is-empty', parsedState.item_count === 0);
+    const cartDrawerWrapper = document.querySelector('cart-drawer');
+    const cartFooter = document.getElementById('main-cart-footer');
+
+    if (cartFooter)
+      cartFooter.classList.toggle('is-empty', parsedState.item_count === 0);
+    if (cartDrawerWrapper)
+      cartDrawerWrapper.classList.toggle(
+        'is-empty',
+        parsedState.item_count === 0,
+      );
+
+    sectionsToRender.forEach((section) => {
+      const container = document.getElementById(section.id);
+      if (!container || !parsedState.sections?.[section.section]) return;
+      const elementToReplace =
+        container.querySelector(section.selector) || container;
+      elementToReplace.innerHTML = this.getSectionInnerHTML(
+        parsedState.sections[section.section],
+        section.selector,
+      );
+    });
+
+    return cartDrawerWrapper;
+  }
+
+  applyGiftWrapCartState(parsedState) {
+    if (!parsedState?.sections) return;
+
+    this.paintCartSections(parsedState);
+
+    publish(PUB_SUB_EVENTS.cartUpdate, {
+      source: 'cart-items',
+      cartData: parsedState,
+    });
   }
 
   resolveCartLinesUpdate(deferred, parsedState) {
